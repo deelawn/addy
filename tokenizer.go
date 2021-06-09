@@ -6,9 +6,11 @@ import (
 
 // separators are the runes we will use to tokenize.
 var separators = map[rune]bool{
-	' ': true,
-	',': true,
-	'-': true,
+	' ':  true,
+	',':  true,
+	'-':  true,
+	'\t': true,
+	'.':  true,
 }
 
 // token represents a string defined between separators or a separator itself.

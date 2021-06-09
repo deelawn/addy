@@ -1,5 +1,7 @@
 package addy
 
+import "strings"
+
 // secondary units are the standard USPS abbreviations:
 // https://pe.usps.com/text/pub28/28apc_003.htm
 
@@ -85,6 +87,17 @@ var secondaryUnitNormalizations = map[string]string{
 // normalizeSecondaryUnit will normalize any string it determines to be a secondary unit requiring normalization.
 // Otherwise it will just return what was passed in. The boolean it returns is true if the string
 // was found in the lookup table.
-func normalizeSecondaryUnit(s string) (string, bool) {
-	return normalize(s, secondaryUnitNormalizations)
+func normalizeSecondaryUnit(s string, normOpts normalizationOptions) (string, bool) {
+
+	normalized, foundInLookup := normalize(s, secondaryUnitNormalizations, normOpts)
+
+	// Special case for the PO secondary unit. It should normally always be returned as PO unless
+	// the override option is specified, meaning that it should adhere to the casing option.
+	// So, if the option is not specified, override whatever casing was applied to it so it is
+	// reverted to uppercase.
+	if !normOpts.exludePOCasing && strings.ToUpper(normalized) == secondaryUnitPO {
+		normalized = secondaryUnitPO
+	}
+
+	return normalized, foundInLookup
 }

@@ -761,6 +761,6 @@ var suffixNormalizations = map[string]string{
 // normalizeSuffix will normalize any string it determines to be a suffix requiring normalization.
 // Otherwise it will just return what was passed in. The boolean it returns is true if the string
 // was found in the lookup table.
-func normalizeSuffix(s string) (string, bool) {
-	return normalize(s, suffixNormalizations)
+func normalizeSuffix(s string, normOpts normalizationOptions) (string, bool) {
+	return normalize(s, suffixNormalizations, normOpts)
 }

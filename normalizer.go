@@ -2,25 +2,76 @@ package addy
 
 import "strings"
 
-func normalize(s string, lookup map[string]string) (string, bool) {
+func normalize(s string, lookup map[string]string, normOpts normalizationOptions) (string, bool) {
 
-	s = strings.ToUpper(s)
-	if normalized, ok := lookup[s]; ok {
-		return normalized, true
+	lookupKey := strings.ToUpper(s)
+	normalized, foundInLookup := lookup[lookupKey]
+
+	// If we didn't find it in the lookup, assign the normalized value to what was passed in.
+	if !foundInLookup {
+		normalized = s
 	}
 
-	return s, false
+	// This is the casing that we will apply to the normalized string.
+	casingToApply := normOpts.casingOption
+
+	// If we have the preserve casing option, we need to figure out the casing of the string that
+	// was passed in so we know how to case the normalized result.
+	if casingToApply == OptionPreserveCase {
+
+		// Fastpath: not found in the lookup so just return the original string.
+		if !foundInLookup {
+			return s, false
+		}
+
+		// This will be the default if they provided a token with some weird mixture
+		// of upper and lowercased characers. Titlecase is used by default because it is
+		// the only casing option that includes both upper and lowercase characters, so there
+		// is a chance that titlecase was the intended casing.
+		casingToApply = OptionTitleCase
+
+		// If applying these casings is equal to the original value, then we know that is
+		// the casing that is to be preserved.
+		if applyNormalizationCasingOption(s, OptionUpperCase) == s {
+			casingToApply = OptionUpperCase
+		} else if applyNormalizationCasingOption(s, OptionLowerCase) == s {
+			casingToApply = OptionLowerCase
+		}
+	}
+
+	normalized = applyNormalizationCasingOption(normalized, casingToApply)
+	return normalized, foundInLookup
 }
 
-// NormalizeAddress1 will return an uppercased version of the input argument with all directional
+func applyNormalizationCasingOption(s string, o option) (casingApplied string) {
+
+	// Now use the options to convert to the appropriate case.
+	switch o {
+	case OptionUpperCase:
+		casingApplied = strings.ToUpper(s)
+
+	case OptionLowerCase:
+		casingApplied = strings.ToLower(s)
+
+	case OptionTitleCase:
+		casingApplied = strings.Title(strings.ToLower(s))
+	}
+
+	return
+}
+
+// NormalizeAddress1 will return a version of the input argument with all directional
 // and suffix keywords normalized, along with a count of how many tokens were normalized.
-func NormalizeAddress1(address string) (string, int) {
+// The casing is uppercased by default, but can be specified using optional arguments.
+// Only the first casing option encountered will be applied.
+func NormalizeAddress1(address string, options ...option) (string, int) {
 
 	var (
 		tokensNormalized int
 		wasNormalized    bool
 	)
 
+	normOpts := parseOptions(options...)
 	tokens := tokenize(address)
 	for _, token := range tokens {
 
@@ -31,9 +82,9 @@ func NormalizeAddress1(address string) (string, int) {
 
 		// There should never be any overlap between things that can be normalized either directionally or
 		// by suffix; if not one, then try the other.
-		token.value, wasNormalized = normalizeDirectional(token.value)
+		token.value, wasNormalized = normalizeDirectional(token.value, normOpts)
 		if !wasNormalized {
-			token.value, wasNormalized = normalizeSuffix(token.value)
+			token.value, wasNormalized = normalizeSuffix(token.value, normOpts)
 		}
 
 		if wasNormalized {
@@ -46,15 +97,18 @@ func NormalizeAddress1(address string) (string, int) {
 	return tokens.join(), tokensNormalized
 }
 
-// NormalizeAddress2 will return an uppercased version of the input argument with all secondary
+// NormalizeAddress2 will return a version of the input argument with all secondary
 // unit keywords normalized, along with a count of how many tokens were normalized.
-func NormalizeAddress2(address string) (string, int) {
+// The casing is uppercased by default, but can be specified using optional arguments.
+// Only the first casing option encountered will be applied.
+func NormalizeAddress2(address string, options ...option) (string, int) {
 
 	var (
 		tokensNormalized int
 		wasNormalized    bool
 	)
 
+	normOpts := parseOptions(options...)
 	tokens := tokenize(address)
 	for _, token := range tokens {
 
@@ -63,7 +117,7 @@ func NormalizeAddress2(address string) (string, int) {
 			continue
 		}
 
-		if token.value, wasNormalized = normalizeSecondaryUnit(token.value); wasNormalized {
+		if token.value, wasNormalized = normalizeSecondaryUnit(token.value, normOpts); wasNormalized {
 			tokensNormalized++
 		}
 	}

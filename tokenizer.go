@@ -8,9 +8,7 @@ import (
 var separators = map[rune]bool{
 	' ':  true,
 	',':  true,
-	'-':  true,
 	'\t': true,
-	'.':  true,
 }
 
 // token represents a string defined between separators or a separator itself.
@@ -68,7 +66,7 @@ func tokenize(address string) (tokens tokens) {
 			currentTokenValue = ""
 		}
 
-		// Add the separator to the tokens list if the previous toke wasn't the same separator.
+		// Add the separator to the tokens list if the previous token wasn't the same separator.
 		// This helps to remove thing like duplicate spaces, etc.
 		if len(tokens) > 0 && tokens[len(tokens)-1].value != string(rn) {
 			tokens = append(tokens, &token{value: string(rn), isSeparator: true})
